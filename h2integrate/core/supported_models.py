@@ -42,7 +42,15 @@ from h2integrate.converters.nitrogen.simple_ASU import SimpleASUCostModel, Simpl
 from h2integrate.converters.wind.wind_plant_ard import ArdWindPlantModel
 from h2integrate.resource.solar.openmeteo_solar import OpenMeteoHistoricalSolarResource
 from h2integrate.storage.simple_generic_storage import SimpleGenericStorage
+from h2integrate.converters.hydrogen.h2_fuel_cell import (
+    H2FuelCellCostModel,
+    LinearH2FuelCellPerformanceModel,
+)
 from h2integrate.converters.hydrogen.wombat_model import WOMBATElectrolyzerModel
+from h2integrate.converters.nuclear.nuclear_plant import (
+    QuinnNuclearCostModel,
+    QuinnNuclearPerformanceModel,
+)
 from h2integrate.converters.steel.steel_eaf_plant import (
     HydrogenEAFPlantCostComponent,
     NaturalGasEAFPlantCostComponent,
@@ -55,6 +63,8 @@ from h2integrate.storage.hydrogen.h2_storage_cost import (
     SaltCavernStorageCostModel,
     LinedRockCavernStorageCostModel,
 )
+from h2integrate.transporters.generic_transporter import GenericTransporterPerformanceModel
+from h2integrate.converters.iron.humbert_ewin_perf import HumbertEwinPerformanceComponent
 from h2integrate.converters.ammonia.ammonia_synloop import (
     AmmoniaSynLoopCostModel,
     AmmoniaSynLoopPerformanceModel,
@@ -80,6 +90,7 @@ from h2integrate.converters.ammonia.simple_ammonia_model import (
     SimpleAmmoniaCostModel,
     SimpleAmmoniaPerformanceModel,
 )
+from h2integrate.converters.iron.humbert_stinn_ewin_cost import HumbertStinnEwinCostComponent
 from h2integrate.converters.methanol.co2h_methanol_plant import (
     CO2HMethanolPlantCostModel,
     CO2HMethanolPlantFinanceModel,
@@ -91,9 +102,6 @@ from h2integrate.converters.natural_gas.natural_gas_cc_ct import (
 )
 from h2integrate.converters.hydrogen.singlitico_cost_model import SingliticoCostModel
 from h2integrate.converters.co2.marine.direct_ocean_capture import DOCCostModel, DOCPerformanceModel
-from h2integrate.control.control_strategies.pyomo_controllers import (
-    HeuristicLoadFollowingController,
-)
 from h2integrate.converters.hydrogen.geologic.mathur_modified import GeoH2SubsurfaceCostModel
 from h2integrate.resource.solar.nrel_developer_goes_api_models import (
     GOESTMYSolarAPI,
@@ -124,6 +132,12 @@ from h2integrate.converters.co2.marine.ocean_alkalinity_enhancement import (
 from h2integrate.converters.hydrogen.custom_electrolyzer_cost_model import (
     CustomElectrolyzerCostModel,
 )
+from h2integrate.control.control_strategies.heuristic_pyomo_controller import (
+    HeuristicLoadFollowingController,
+)
+from h2integrate.control.control_strategies.optimized_pyomo_controller import (
+    OptimizedDispatchController,
+)
 from h2integrate.converters.hydrogen.geologic.aspen_surface_processing import (
     AspenGeoH2SurfaceCostModel,
     AspenGeoH2SurfacePerformanceModel,
@@ -146,6 +160,12 @@ from h2integrate.control.control_strategies.storage.demand_openloop_controller i
 )
 from h2integrate.control.control_strategies.converters.demand_openloop_controller import (
     DemandOpenLoopConverterController,
+)
+from h2integrate.control.control_rules.storage.pyomo_storage_rule_min_operating_cost import (
+    PyomoRuleStorageMinOperatingCosts,
+)
+from h2integrate.control.control_rules.converters.generic_converter_min_operating_cost import (
+    PyomoDispatchGenericConverterMinOperatingCosts,
 )
 from h2integrate.control.control_strategies.converters.flexible_demand_openloop_controller import (
     FlexibleDemandOpenLoopConverterController,
@@ -182,6 +202,8 @@ supported_models = {
     "BasicElectrolyzerCostModel": BasicElectrolyzerCostModel,
     "CustomElectrolyzerCostModel": CustomElectrolyzerCostModel,
     "WOMBATElectrolyzerModel": WOMBATElectrolyzerModel,
+    "LinearH2FuelCellPerformanceModel": LinearH2FuelCellPerformanceModel,
+    "H2FuelCellCostModel": H2FuelCellCostModel,
     "SimpleASUCostModel": SimpleASUCostModel,
     "SimpleASUPerformanceModel": SimpleASUPerformanceModel,
     "HOPPComponent": HOPPComponent,
@@ -196,6 +218,8 @@ supported_models = {
     "NaturalGasIronReductionPlantCostComponent": NaturalGasIronReductionPlantCostComponent,  # standalone model  # noqa: E501
     "HydrogenIronReductionPlantPerformanceComponent": HydrogenIronReductionPlantPerformanceComponent,  # noqa: E501
     "HydrogenIronReductionPlantCostComponent": HydrogenIronReductionPlantCostComponent,  # standalone model  # noqa: E501
+    "HumbertEwinPerformanceComponent": HumbertEwinPerformanceComponent,
+    "HumbertStinnEwinCostComponent": HumbertStinnEwinCostComponent,
     "NaturalGasEAFPlantPerformanceComponent": NaturalGasEAFPlantPerformanceComponent,
     "NaturalGasEAFPlantCostComponent": NaturalGasEAFPlantCostComponent,  # standalone model
     "HydrogenEAFPlantPerformanceComponent": HydrogenEAFPlantPerformanceComponent,
@@ -225,12 +249,15 @@ supported_models = {
     "AspenGeoH2SurfacePerformanceModel": AspenGeoH2SurfacePerformanceModel,
     "AspenGeoH2SurfaceCostModel": AspenGeoH2SurfaceCostModel,
     "NaturalGasPerformanceModel": NaturalGasPerformanceModel,
+    "QuinnNuclearPerformanceModel": QuinnNuclearPerformanceModel,
+    "QuinnNuclearCostModel": QuinnNuclearCostModel,
     "NaturalGasCostModel": NaturalGasCostModel,
     # Transport
     "cable": CablePerformanceModel,
     "pipe": PipePerformanceModel,
     "GenericCombinerPerformanceModel": GenericCombinerPerformanceModel,
     "GenericSplitterPerformanceModel": GenericSplitterPerformanceModel,
+    "GenericTransporterPerformanceModel": GenericTransporterPerformanceModel,
     "IronTransportPerformanceComponent": IronTransportPerformanceComponent,
     "IronTransportCostComponent": IronTransportCostComponent,
     # Simple Summers
@@ -249,11 +276,14 @@ supported_models = {
     "PassThroughOpenLoopController": PassThroughOpenLoopController,
     "DemandOpenLoopStorageController": DemandOpenLoopStorageController,
     "HeuristicLoadFollowingController": HeuristicLoadFollowingController,
+    "OptimizedDispatchController": OptimizedDispatchController,
     "DemandOpenLoopConverterController": DemandOpenLoopConverterController,
     "FlexibleDemandOpenLoopConverterController": FlexibleDemandOpenLoopConverterController,
     # Dispatch
     "PyomoDispatchGenericConverter": PyomoDispatchGenericConverter,
     "PyomoRuleStorageBaseclass": PyomoRuleStorageBaseclass,
+    "PyomoRuleStorageMinOperatingCosts": PyomoRuleStorageMinOperatingCosts,
+    "PyomoDispatchGenericConverterMinOperatingCosts": PyomoDispatchGenericConverterMinOperatingCosts,  # noqa: E501
     # Feedstock
     "FeedstockPerformanceModel": FeedstockPerformanceModel,
     "FeedstockCostModel": FeedstockCostModel,
@@ -291,6 +321,7 @@ def is_electricity_producer(tech_name: str) -> bool:
         "hopp",
         "natural_gas_plant",
         "grid_buy",
+        "h2_fuel_cell",
     ]
 
     return any(tech_name.startswith(elem) for elem in electricity_producing_techs)

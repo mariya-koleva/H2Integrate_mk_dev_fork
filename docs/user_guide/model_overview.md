@@ -1,4 +1,5 @@
 
+(model-overview)=
 # Model Overview
 Currently, H2I recognizes four types of models:
 
@@ -44,7 +45,8 @@ The inputs, outputs, and corresponding technology that are currently available i
 | `HOPPComponent`           |  electricity  | N/A |
 | `electrolyzer`   |  hydrogen     | electricity |
 | `geoh2`          |  hydrogen     | rock type |
-| `steel`          |  steel        | hydrogen |
+| `h2_fuel_cell`   |  electricity  | hydrogen |
+| `steel`          |  steel        | iron ore |
 | `ammonia`        |  ammonia      | nitrogen, hydrogen |
 | `doc`   |  co2     | electricity |
 | `oae`   |  co2     | electricity |
@@ -52,6 +54,7 @@ The inputs, outputs, and corresponding technology that are currently available i
 | `air_separator`   |  nitrogen     | electricity |
 | `desal`   |  water     | electricity |
 | `natural_gas`   |  electricity     | natural gas |
+| `nuclear`   |  electricity     | none |
 
 ```{note}
 When the Primary Commodity is electricity, those converters are considered electricity producing technologies and their electricity production is summed for financial calculations.
@@ -72,6 +75,7 @@ When the Primary Commodity is electricity, those converters are considered elect
 | `pipe`      |  most mass-based commodities         |
 | `combiner`      | Any    |
 | `splitter` |  Any|
+| `generic_transport` | Any |
 
 Connection: `[source_tech, dest_tech, transport_commodity, transport_technology]`
 
@@ -86,6 +90,7 @@ Connection: `[source_tech, dest_tech, transport_commodity, transport_technology]
 | `generic_storage` |  Any              |
 
 (control)=
+(controller)=
 ## Control
 `Control` models are used to control the `Storage` models and resource flows.
 
@@ -97,6 +102,7 @@ Connection: `[source_tech, dest_tech, transport_commodity, transport_technology]
 | `FlexibleDemandOpenLoopConverterController`  |  open-loop control. manages resource flow based on demand and flexibility constraints     |
 | `HeuristicLoadFollowingController` | open-loop control that works on a time window basis to set dispatch commands. Uses pyomo |
 
+(technology-models-overview)=
 # Technology Models Overview
 
 Below summarizes the available performance, cost, and financial models for each model type. The list of supported models is also available in [supported_models.py](../../h2integrate/core/supported_models.py)
@@ -173,6 +179,11 @@ Below summarizes the available performance, cost, and financial models for each 
         + `'StimulatedGeoH2PerformanceModel'`
     - cost models:
         + `'GeoH2SubsurfaceCostModel'`
+- `h2_fuel_cell`: hydrogen fuel cell
+    - performance models:
+        + `'LinearH2FuelCellPerformanceModel'`
+    - cost models:
+        + `'H2FuelCellCostModel'`
 - `steel`: steel production
     - performance models:
         + `'SteelPerformanceModel'`
@@ -224,6 +235,13 @@ Below summarizes the available performance, cost, and financial models for each 
         + `'NaturalGasPerformanceModel'`
     - cost_models:
         + `'NaturalGasCostModel'`
+- `nuclear`: nuclear power plant
+    - performance models:
+        + `'QuinnNuclearPerformanceModel'`
+    - cost models:
+        + `'QuinnNuclearCostModel'`
+    - docs:
+        + [../technology_models/nuclear.md](../technology_models/nuclear.md)
 - `grid`: electricity grid connection
     - performance models:
         + `'GridPerformanceModel'`
@@ -238,9 +256,16 @@ Below summarizes the available performance, cost, and financial models for each 
     - performance models:
         + `'NaturalGasIronReductionPlantPerformanceComponent'`
         + `'HydrogenIronReductionPlantPerformanceComponent'`
+        + `'HumbertEwinPerformanceComponent'`
     - cost models:
         + `'NaturalGasIronReductionPlantCostComponent'`
         + `'HydrogenIronReductionPlantCostComponent'`
+- `iron_ewin`: iron electrowinning
+    - performance models:
+        + `'HumbertEwinPerformanceComponent'`
+    - cost models:
+        + `'HumbertStinnEwinCostComponent'`
+
 
 (transport-models)=
 ## Transport Models
@@ -249,14 +274,16 @@ Below summarizes the available performance, cost, and financial models for each 
         + `'cable'`: specific to `electricity` commodity
 - `pipe`:
     - performance models:
-        + `'pipe'`: currently compatible with the commodities "hydrogen", "co2", "methanol", "ammonia", "nitrogen", "natural_gas", "pig_iron", "reformer_catalyst", "water", "carbon", "iron_ore", and "lime"
+        + `'pipe'`: compatible with the commodities "hydrogen", "co2", "methanol", "ammonia", "nitrogen", "natural_gas", and "water"
 - `combiner`:
     - performance models:
         + `'GenericCombinerPerformanceModel'`: can be used for any commodity
 - `splitter`:
     - performance models:
         + `'GenericSplitterPerformanceModel'`: can be used for any commodity
-
+- `generic_transport`:
+    - performance models:
+        + `'GenericTransporterPerformanceModel'`: can be used for any commodity
 (storage-models)=
 ## Storage Models
 - `h2_storage`: hydrogen storage

@@ -3,8 +3,6 @@ import pytest
 import openmdao.api as om
 from pytest import fixture
 
-from h2integrate import EXAMPLE_DIR
-from h2integrate.core.inputs.validation import load_driver_yaml
 from h2integrate.converters.steel.steel_eaf_plant import (
     HydrogenEAFPlantCostComponent,
     NaturalGasEAFPlantCostComponent,
@@ -34,12 +32,6 @@ def plant_config():
 
 
 @fixture
-def driver_config():
-    driver_config = load_driver_yaml(EXAMPLE_DIR / "21_iron_mn_to_il" / "driver_config.yaml")
-    return driver_config
-
-
-@fixture
 def ng_eaf_base_config():
     tech_config = {
         "model_inputs": {
@@ -65,7 +57,7 @@ def ng_feedstock_availability_costs():
         },
         "natural_gas": {
             "rated_capacity": 277,  # need 276.5024456918746 MMBtu at each timestep
-            "units": "MMBtu",
+            "units": "MMBtu/h",
             "price": 0.0,
         },
         "water": {
@@ -93,7 +85,7 @@ def h2_feedstock_availability_costs():
         },
         "natural_gas": {
             "rated_capacity": 13.0,  # need 12.136117946872957 MMBtu at each timestep
-            "units": "MMBtu",
+            "units": "MMBtu/h",
             "price": 0.0,
         },
         "carbon": {
@@ -120,6 +112,7 @@ def h2_feedstock_availability_costs():
     return feedstocks_dict
 
 
+@pytest.mark.unit
 def test_ng_eaf_performance_outputs(
     plant_config, ng_eaf_base_config, ng_feedstock_availability_costs, subtests
 ):
@@ -218,6 +211,7 @@ def test_ng_eaf_performance_outputs(
         assert np.all(prob.get_val("comp.replacement_schedule", units="unitless") == 0)
 
 
+@pytest.mark.regression
 def test_ng_eaf_performance(
     plant_config, ng_eaf_base_config, ng_feedstock_availability_costs, subtests
 ):
@@ -248,6 +242,7 @@ def test_ng_eaf_performance(
         )
 
 
+@pytest.mark.regression
 def test_ng_eaf_performance_limited_feedstock(
     plant_config, ng_eaf_base_config, ng_feedstock_availability_costs, subtests
 ):
@@ -284,6 +279,7 @@ def test_ng_eaf_performance_limited_feedstock(
         assert pytest.approx(annual_steel / 365, rel=1e-3) == expected_steel_annual_production_tpd
 
 
+@pytest.mark.regression
 def test_ng_eaf_performance_cost(
     plant_config, ng_eaf_base_config, ng_feedstock_availability_costs, subtests
 ):
@@ -329,14 +325,19 @@ def test_ng_eaf_performance_cost(
         assert pytest.approx(annual_steel / 365, rel=1e-3) == expected_steel_annual_production_tpd
     with subtests.test("CapEx"):
         # expected difference of 0.044534%
-        assert pytest.approx(prob.get_val("cost.CapEx")[0], rel=1e-3) == expected_capex
+        assert pytest.approx(prob.get_val("cost.CapEx", units="USD")[0], rel=1e-3) == expected_capex
     with subtests.test("OpEx"):
         assert (
-            pytest.approx(prob.get_val("cost.OpEx")[0] + prob.get_val("cost.VarOpEx")[0], rel=1e-3)
+            pytest.approx(
+                prob.get_val("cost.OpEx", units="USD/year")[0]
+                + prob.get_val("cost.VarOpEx", units="USD/year")[0],
+                rel=1e-3,
+            )
             == expected_fixed_om
         )
 
 
+@pytest.mark.regression
 def test_h2_eaf_performance(
     plant_config, ng_eaf_base_config, h2_feedstock_availability_costs, subtests
 ):
@@ -365,6 +366,7 @@ def test_h2_eaf_performance(
         assert pytest.approx(annual_steel / 365, rel=1e-3) == expected_steel_annual_production_tpd
 
 
+@pytest.mark.regression
 def test_h2_eaf_performance_cost(
     plant_config, ng_eaf_base_config, h2_feedstock_availability_costs, subtests
 ):
@@ -407,9 +409,13 @@ def test_h2_eaf_performance_cost(
         assert pytest.approx(annual_steel / 365, rel=1e-3) == expected_steel_annual_production_tpd
     with subtests.test("CapEx"):
         # expected difference of 0.044534%
-        assert pytest.approx(prob.get_val("cost.CapEx")[0], rel=1e-3) == expected_capex
+        assert pytest.approx(prob.get_val("cost.CapEx", units="USD")[0], rel=1e-3) == expected_capex
     with subtests.test("OpEx"):
         assert (
-            pytest.approx(prob.get_val("cost.OpEx")[0] + prob.get_val("cost.VarOpEx")[0], rel=1e-3)
+            pytest.approx(
+                prob.get_val("cost.OpEx", units="USD/year")[0]
+                + prob.get_val("cost.VarOpEx", units="USD/year")[0],
+                rel=1e-3,
+            )
             == expected_fixed_om
         )

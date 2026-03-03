@@ -3,36 +3,8 @@ import pytest
 import openmdao.api as om
 from pytest import fixture
 
-from h2integrate import EXAMPLE_DIR
 from h2integrate.converters.solar.solar_pysam import PYSAMSolarPlantPerformanceModel
 from h2integrate.resource.solar.nrel_developer_goes_api_models import GOESAggregatedSolarAPI
-
-
-@fixture
-def plant_config():
-    plant = {
-        "plant_life": 30,
-        "simulation": {
-            "dt": 3600,
-            "n_timesteps": 8760,
-            "start_time": "01/01/1900 00:30:00",
-            "timezone": 0,
-        },
-    }
-
-    return {"plant": plant, "site": {"latitude": 30.6617, "longitude": -101.7096, "resources": {}}}
-
-
-@fixture
-def solar_resource_dict():
-    pv_resource_dir = EXAMPLE_DIR / "11_hybrid_energy_plant" / "tech_inputs" / "weather" / "solar"
-    pv_filename = "30.6617_-101.7096_psmv3_60_2013.csv"
-    pv_resource_dict = {
-        "resource_year": 2013,
-        "resource_dir": pv_resource_dir,
-        "resource_filename": pv_filename,
-    }
-    return pv_resource_dict
 
 
 @fixture
@@ -52,6 +24,7 @@ def basic_pysam_options():
     return pysam_options
 
 
+@pytest.mark.unit
 def test_pvwatts_outputs(basic_pysam_options, solar_resource_dict, plant_config, subtests):
     basic_pysam_options["SystemDesign"].update({"tilt": 0.0})
     pv_design_dict = {
@@ -173,6 +146,7 @@ def test_pvwatts_outputs(basic_pysam_options, solar_resource_dict, plant_config,
         assert np.all(prob.get_val("comp.replacement_schedule", units="unitless") == 0)
 
 
+@pytest.mark.unit
 def test_pvwatts_singleowner_notilt(
     basic_pysam_options, solar_resource_dict, plant_config, subtests
 ):
@@ -218,9 +192,9 @@ def test_pvwatts_singleowner_notilt(
     prob.setup()
     prob.run_model()
 
-    aep = prob.get_val("pv_perf.annual_electricity_produced")[0]
-    system_capacity_AC = prob.get_val("pv_perf.system_capacity_AC")[0]
-    system_capacity_DC = prob.get_val("pv_perf.system_capacity_DC")[0]
+    aep = prob.get_val("pv_perf.annual_electricity_produced", units="kW*h/year")[0]
+    system_capacity_AC = prob.get_val("pv_perf.system_capacity_AC", units="kW")[0]
+    system_capacity_DC = prob.get_val("pv_perf.system_capacity_DC", units="kW")[0]
 
     with subtests.test("AEP"):
         assert pytest.approx(aep, rel=1e-6) == 527345996
@@ -235,6 +209,7 @@ def test_pvwatts_singleowner_notilt(
         assert pytest.approx(system_capacity_DC, rel=1e-6) == pv_design_dict["pv_capacity_kWdc"]
 
 
+@pytest.mark.unit
 def test_pvwatts_singleowner_notilt_different_site(basic_pysam_options, plant_config, subtests):
     """Test `PYSAMSolarPlantPerformanceModel` with a basic input scenario:
 
@@ -299,9 +274,9 @@ def test_pvwatts_singleowner_notilt_different_site(basic_pysam_options, plant_co
     prob.model.set_val("solar_resource.longitude", -102.75)
     prob.run_model()
 
-    aep = prob.get_val("pv_perf.annual_electricity_produced")[0]
-    system_capacity_AC = prob.get_val("pv_perf.system_capacity_AC")[0]
-    system_capacity_DC = prob.get_val("pv_perf.system_capacity_DC")[0]
+    aep = prob.get_val("pv_perf.annual_electricity_produced", units="kW*h/year")[0]
+    system_capacity_AC = prob.get_val("pv_perf.system_capacity_AC", units="kW")[0]
+    system_capacity_DC = prob.get_val("pv_perf.system_capacity_DC", units="kW")[0]
 
     with subtests.test("Got updated site lat"):
         resource_lat = prob.get_val("pv_perf.solar_resource_data").get("site_lat", 0)
@@ -324,6 +299,7 @@ def test_pvwatts_singleowner_notilt_different_site(basic_pysam_options, plant_co
         assert pytest.approx(system_capacity_DC, rel=1e-6) == pv_design_dict["pv_capacity_kWdc"]
 
 
+@pytest.mark.unit
 def test_pvwatts_singleowner_withtilt(
     basic_pysam_options, solar_resource_dict, plant_config, subtests
 ):
@@ -362,9 +338,9 @@ def test_pvwatts_singleowner_withtilt(
     prob.setup()
     prob.run_model()
 
-    aep = prob.get_val("pv_perf.annual_electricity_produced")[0]
-    system_capacity_AC = prob.get_val("pv_perf.system_capacity_AC")[0]
-    system_capacity_DC = prob.get_val("pv_perf.system_capacity_DC")[0]
+    aep = prob.get_val("pv_perf.annual_electricity_produced", units="kW*h/year")[0]
+    system_capacity_AC = prob.get_val("pv_perf.system_capacity_AC", units="kW")[0]
+    system_capacity_DC = prob.get_val("pv_perf.system_capacity_DC", units="kW")[0]
 
     with subtests.test("AEP"):
         assert pytest.approx(aep, rel=1e-6) == 556443491
